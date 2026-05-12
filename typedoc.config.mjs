@@ -13,6 +13,7 @@ const config = {
     "docs/quickstart.md",
     "docs/agent-skills.md",
     "docs/testing-mcp-apps.md",
+    "docs/testing-any-page.md",
     "docs/patterns.md",
     "docs/authorization.md",
     "docs/csp-cors.md",
