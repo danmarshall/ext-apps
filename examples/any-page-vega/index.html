@@ -56,9 +56,6 @@
       <div id="chart"></div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/vega@5.33.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.22.1"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vega-embed@7.1.0"></script>
     <script type="module">
       import { registerAnyPageTools } from "../../dist/src/any-page.js";
 
@@ -70,7 +67,13 @@
       const defaultSpec = {
         $schema: "https://vega.github.io/schema/vega-lite/v5.json",
         description: "A basic bar chart with embedded data.",
-        data: { values: [{ a: "A", b: 28 }, { a: "B", b: 55 }, { a: "C", b: 43 }] },
+        data: {
+          values: [
+            { a: "A", b: 28 },
+            { a: "B", b: 55 },
+            { a: "C", b: 43 },
+          ],
+        },
         mark: "bar",
         encoding: {
           x: { field: "a", type: "nominal" },
@@ -82,10 +85,60 @@
         return JSON.parse(specTextArea.value);
       }
 
+      function renderSimpleVegaLite(spec) {
+        if (spec.mark !== "bar") {
+          throw new Error("This example currently only supports mark: 'bar'.");
+        }
+
+        const xField = spec.encoding?.x?.field;
+        const yField = spec.encoding?.y?.field;
+        const rows = spec.data?.values;
+        if (!xField || !yField || !Array.isArray(rows)) {
+          throw new Error(
+            "Spec must include data.values and encoding.x/encoding.y fields.",
+          );
+        }
+
+        const width = 520;
+        const height = 320;
+        const padding = 24;
+        const maxY = Math.max(
+          ...rows.map((row) => Number(row[yField] ?? 0)),
+          1,
+        );
+        const barWidth = (width - padding * 2) / Math.max(rows.length, 1);
+
+        const bars = rows
+          .map((row, index) => {
+            const label = String(row[xField] ?? "");
+            const value = Number(row[yField] ?? 0);
+            const scaled = (value / maxY) * (height - padding * 2);
+            const x = padding + index * barWidth + 8;
+            const y = height - padding - scaled;
+            const w = Math.max(barWidth - 16, 4);
+            const labelX = padding + index * barWidth + barWidth / 2;
+            return `
+              <rect x="${x}" y="${y}" width="${w}" height="${scaled}" fill="#4f46e5" />
+              <text x="${labelX}" y="${height - 6}" text-anchor="middle" font-size="12" fill="#334155">${label}</text>
+              <text x="${labelX}" y="${Math.max(y - 6, 12)}" text-anchor="middle" font-size="12" fill="#0f172a">${value}</text>
+            `;
+          })
+          .join("");
+
+        chartElement.innerHTML = `
+          <svg viewBox="0 0 ${width} ${height}" width="100%" role="img" aria-label="Rendered Vega-Lite chart">
+            <rect x="0" y="0" width="${width}" height="${height}" fill="white"></rect>
+            <line x1="${padding}" y1="${height - padding}" x2="${width - padding}" y2="${height - padding}" stroke="#94a3b8"></line>
+            <line x1="${padding}" y1="${padding}" x2="${padding}" y2="${height - padding}" stroke="#94a3b8"></line>
+            ${bars}
+          </svg>
+        `;
+      }
+
       async function render() {
         try {
           const spec = readSpec();
-          await vegaEmbed(chartElement, spec, { actions: false });
+          renderSimpleVegaLite(spec);
           statusElement.textContent = "Rendered successfully.";
         } catch (error) {
           statusElement.textContent = `Render error: ${error instanceof Error ? error.message : "Unknown error"}`;

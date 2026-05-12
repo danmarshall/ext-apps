@@ -1,13 +1,27 @@
 export type AnyPageJsonRpcId = string | number | null;
 
+/**
+ * Tool definition exposed by a page for MCP Any Page postMessage transport.
+ */
 export interface AnyPageTool {
+  /** Stable tool name used in `tools/call` params.name. */
   name: string;
+  /** Human-readable tool description for agent discovery. */
   description?: string;
+  /** JSON Schema for tool input arguments. */
   inputSchema: Record<string, unknown>;
+  /** Tool handler invoked with `params.arguments` from `tools/call`. */
   handler: (args: unknown) => Promise<unknown> | unknown;
 }
 
+/**
+ * Optional security controls for `registerAnyPageTools`.
+ */
 export interface RegisterAnyPageToolsOptions {
+  /**
+   * Return `true` to allow requests from the origin, `false` to ignore them.
+   * Called for every incoming `message` event before request handling.
+   */
   allowOrigin?: (origin: string, event: MessageEvent) => boolean;
 }
 
@@ -24,6 +38,14 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 /**
  * Register page capabilities as MCP tools over `window.postMessage`.
+ *
+ * Responses target `event.origin` when available. For opaque origins (where
+ * origin is `"null"`), responses use `"*"` unless callers enforce restrictions
+ * with `allowOrigin`.
+ *
+ * @param tools - Tools to expose through `tools/list` and `tools/call`.
+ * @param options - Optional transport controls like origin filtering.
+ * @returns Function that unregisters the message listener.
  *
  * Returns an unsubscribe function that removes the message listener.
  */
@@ -57,9 +79,11 @@ export function registerAnyPageTools(
     }
 
     const respond = (body: { result?: unknown; error?: unknown }) => {
+      const targetOrigin =
+        event.origin && event.origin !== "null" ? event.origin : "*";
       (source as WindowProxy).postMessage(
         { jsonrpc: "2.0", id: request.id, ...body },
-        "*",
+        targetOrigin,
       );
     };
 

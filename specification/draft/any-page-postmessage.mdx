@@ -59,7 +59,7 @@ Page response:
       {
         "name": "get_spec",
         "description": "Get the current Vega-Lite spec from the editor",
-        "inputSchema": { "type": "object", "properties": {} }
+        "inputSchema": { "type": "object", "properties": {}, "required": [] }
       }
     ]
   }
@@ -134,9 +134,13 @@ drop disallowed requests. This enables both:
 - Open pages that accept requests from any agent
 - Locked-down pages that only accept a trusted origin allowlist
 
+For opaque browser origins (for example sandboxed or `file://` contexts where
+`event.origin` may be `"null"`), implementations commonly fall back to `*` for
+`postMessage` responses unless explicitly restricted.
+
 ## Reference Implementation
 
-A minimal page-side helper is available at `src/any-page.ts` and exported as:
+A minimal page-side helper is exported as:
 
 ```ts
 import { registerAnyPageTools } from "@modelcontextprotocol/ext-apps/any-page";

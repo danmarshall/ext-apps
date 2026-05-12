@@ -67,7 +67,7 @@ describe("registerAnyPageTools", () => {
           ],
         },
       },
-      "*",
+      "https://agent.example",
     );
   });
 
@@ -117,7 +117,7 @@ describe("registerAnyPageTools", () => {
           ],
         },
       },
-      "*",
+      "https://agent.example",
     );
   });
 
@@ -151,7 +151,7 @@ describe("registerAnyPageTools", () => {
         id: "3",
         error: { code: -32602, message: "Invalid params" },
       },
-      "*",
+      "https://agent.example",
     );
     expect(postMessage).toHaveBeenNthCalledWith(
       2,
@@ -160,7 +160,7 @@ describe("registerAnyPageTools", () => {
         id: "4",
         error: { code: -32601, message: "Method not found" },
       },
-      "*",
+      "https://agent.example",
     );
   });
 
