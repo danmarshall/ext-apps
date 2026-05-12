@@ -70,6 +70,18 @@ Any setup that can hold a page window reference and call `postMessage` works:
 The transport requirement is simple: send JSON-RPC request objects to the page
 window and correlate async responses by `id`.
 
+## Does this work with basic-host?
+
+Not directly.
+
+`basic-host` is the reference host for **server-backed MCP Apps** (host ↔ MCP
+server ↔ iframe UI). MCP Any Page is a **page-native postMessage transport**
+that exposes tools from an existing page without an MCP server.
+
+Use `basic-host` to test regular MCP Apps in this repo. For Any Page testing,
+use Playwright MCP, DevTools, or a sidecar/extension that can call
+`window.postMessage` on the target page.
+
 ## Example target in this repo
 
 Use the worked example here:
