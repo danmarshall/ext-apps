@@ -28,7 +28,12 @@ the same run (DOM assertions/screenshots) after each tool call.
 
 ## Quick manual check in browser DevTools
 
-For fast local checks, run this in the page console:
+For fast local checks:
+
+1. Open the target page (for example `examples/any-page-vega/index.html`).
+2. Open DevTools (**Inspect** / **F12**), then select the **Console** panel.
+3. Paste the helper below and run it once.
+4. Run the two sample requests (`tools/list`, then `tools/call`).
 
 ```js
 const request = (payload) =>
@@ -49,7 +54,11 @@ const request = (payload) =>
     window.addEventListener("message", onMessage);
     window.postMessage(payload, "*");
   });
+```
 
+Then run:
+
+```js
 await request({ jsonrpc: "2.0", id: "1", method: "tools/list", params: {} });
 await request({
   jsonrpc: "2.0",
@@ -58,6 +67,38 @@ await request({
   params: { name: "get_spec", arguments: {} },
 });
 ```
+
+Optional: verify a state-changing call in the same console session:
+
+```js
+await request({
+  jsonrpc: "2.0",
+  id: "3",
+  method: "tools/call",
+  params: {
+    name: "set_spec",
+    arguments: {
+      spec: {
+        data: { values: [{ category: "A", value: 4 }] },
+        mark: "bar",
+        encoding: {
+          x: { field: "category", type: "nominal" },
+          y: { field: "value", type: "quantitative" },
+        },
+      },
+    },
+  },
+});
+```
+
+DevTools tips for troubleshooting:
+
+- Use `console.log(event.origin, event.data)` in a temporary `message` listener
+  to inspect inbound/outbound payloads.
+- If a page uses strict origin checks, replace `"*"` in `postMessage` with the
+  exact expected origin.
+- Keep **Preserve log** enabled while reloading so request/response output isn't
+  cleared.
 
 ## Native browser + sidecar/extension pattern
 
