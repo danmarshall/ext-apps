@@ -34,6 +34,10 @@
       "types": "./dist/src/app-bridge.d.ts",
       "default": "./dist/src/app-bridge.js"
     },
+    "./any-page": {
+      "types": "./dist/src/any-page.d.ts",
+      "default": "./dist/src/any-page.js"
+    },
     "./server": {
       "types": "./dist/src/server/index.d.ts",
       "default": "./dist/src/server/index.js"

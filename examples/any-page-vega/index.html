@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MCP Any Page Vega-Lite Example</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0;
+        padding: 1rem;
+        background: #f8fafc;
+      }
+      h1 {
+        margin-top: 0;
+      }
+      .layout {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: 1fr 1fr;
+      }
+      textarea {
+        width: 100%;
+        min-height: 360px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+      }
+      #chart {
+        min-height: 360px;
+        background: white;
+        border: 1px solid #cbd5e1;
+        padding: 0.5rem;
+      }
+      #status {
+        margin-top: 0.5rem;
+        color: #334155;
+      }
+      button {
+        margin-top: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>MCP Any Page: Vega-Lite</h1>
+    <p>
+      Edit a Vega-Lite spec in the textarea and click <strong>Render</strong>.
+      This page also exposes MCP tools via <code>postMessage</code>:
+      <code>set_spec</code> and <code>get_spec</code>.
+    </p>
+    <div class="layout">
+      <div>
+        <textarea id="spec"></textarea>
+        <button id="render">Render</button>
+        <div id="status"></div>
+      </div>
+      <div id="chart"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/vega@5.33.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.22.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vega-embed@7.1.0"></script>
+    <script type="module">
+      import { registerAnyPageTools } from "../../dist/src/any-page.js";
+
+      const specTextArea = document.getElementById("spec");
+      const chartElement = document.getElementById("chart");
+      const statusElement = document.getElementById("status");
+      const renderButton = document.getElementById("render");
+
+      const defaultSpec = {
+        $schema: "https://vega.github.io/schema/vega-lite/v5.json",
+        description: "A basic bar chart with embedded data.",
+        data: { values: [{ a: "A", b: 28 }, { a: "B", b: 55 }, { a: "C", b: 43 }] },
+        mark: "bar",
+        encoding: {
+          x: { field: "a", type: "nominal" },
+          y: { field: "b", type: "quantitative" },
+        },
+      };
+
+      function readSpec() {
+        return JSON.parse(specTextArea.value);
+      }
+
+      async function render() {
+        try {
+          const spec = readSpec();
+          await vegaEmbed(chartElement, spec, { actions: false });
+          statusElement.textContent = "Rendered successfully.";
+        } catch (error) {
+          statusElement.textContent = `Render error: ${error instanceof Error ? error.message : "Unknown error"}`;
+        }
+      }
+
+      specTextArea.value = JSON.stringify(defaultSpec, null, 2);
+      renderButton.addEventListener("click", render);
+      await render();
+
+      registerAnyPageTools([
+        {
+          name: "set_spec",
+          description: "Set the Vega-Lite spec in the textarea and re-render",
+          inputSchema: {
+            type: "object",
+            properties: { spec: { type: "object" } },
+            required: ["spec"],
+          },
+          handler: async (args) => {
+            if (!args || typeof args !== "object" || !("spec" in args)) {
+              throw new Error("Invalid spec");
+            }
+            specTextArea.value = JSON.stringify(args.spec, null, 2);
+            await render();
+            return { content: [{ type: "text", text: "Spec updated." }] };
+          },
+        },
+        {
+          name: "get_spec",
+          description: "Get the current Vega-Lite spec from the textarea",
+          inputSchema: { type: "object", properties: {} },
+          handler: () => ({
+            content: [{ type: "text", text: specTextArea.value }],
+          }),
+        },
+      ]);
+    </script>
+  </body>
+</html>

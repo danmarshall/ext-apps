@@ -1,0 +1,145 @@
+# MCP Any Page (Draft)
+
+## Summary
+
+MCP Any Page defines a minimal pattern for exposing MCP tools directly from any
+existing web page over `window.postMessage`, without an MCP server, host iframe,
+or new UI surface.
+
+An agent that can run script in, or hold a window reference to, the page can:
+
+1. Discover capabilities with `tools/list`
+2. Invoke capabilities with `tools/call`
+
+The page returns standard MCP JSON-RPC responses correlated by `id`.
+
+## Transport
+
+- Transport: browser `postMessage`
+- Protocol: JSON-RPC 2.0 with standard MCP methods (`tools/list`, `tools/call`)
+- Direction:
+  - Agent sends request with `targetWindow.postMessage(message, "*")`
+  - Page replies with `event.source.postMessage(response, "*")`
+- Semantics: fully asynchronous and request/response by `id`
+
+No handshake, readiness ping, or session setup is required.
+
+## Discovery (`tools/list`)
+
+Agent request:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "1",
+  "method": "tools/list",
+  "params": {}
+}
+```
+
+Page response:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "1",
+  "result": {
+    "tools": [
+      {
+        "name": "set_spec",
+        "description": "Set the Vega-Lite spec in the editor",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "spec": { "type": "object" }
+          },
+          "required": ["spec"]
+        }
+      },
+      {
+        "name": "get_spec",
+        "description": "Get the current Vega-Lite spec from the editor",
+        "inputSchema": { "type": "object", "properties": {} }
+      }
+    ]
+  }
+}
+```
+
+## Invocation (`tools/call`)
+
+Agent request:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "2",
+  "method": "tools/call",
+  "params": {
+    "name": "set_spec",
+    "arguments": {
+      "spec": {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "mark": "bar"
+      }
+    }
+  }
+}
+```
+
+Page response:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "2",
+  "result": {
+    "content": [{ "type": "text", "text": "Spec updated." }]
+  }
+}
+```
+
+## Async Behavior
+
+- The page MAY answer immediately or after asynchronous initialization/work.
+- Response `id` MUST match the request `id`.
+- Agents MUST await responses and correlate by `id`.
+- Notifications (requests without `id`) SHOULD NOT receive responses.
+
+## Error Handling
+
+Errors use standard JSON-RPC shape:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": "2",
+  "error": { "code": -32602, "message": "Invalid spec" }
+}
+```
+
+Recommended codes:
+
+- `-32601` method not found (`tools/list` / `tools/call` unsupported)
+- `-32602` invalid params (bad tool name or arguments)
+- `-32603` internal error (tool handler failure)
+
+## Origin and Security Guidance
+
+The specification does **not** mandate origin restrictions.
+
+Pages that need restrictions SHOULD inspect `event.origin` before responding and
+drop disallowed requests. This enables both:
+
+- Open pages that accept requests from any agent
+- Locked-down pages that only accept a trusted origin allowlist
+
+## Reference Implementation
+
+A minimal page-side helper is available at `src/any-page.ts` and exported as:
+
+```ts
+import { registerAnyPageTools } from "@modelcontextprotocol/ext-apps/any-page";
+```
+
+See `examples/any-page-vega/index.html` for a complete worked example.
